@@ -2,10 +2,10 @@ from os import path
 from setuptools import setup
 
 setup(
-    name = 'dotconfig',
+    name = 'jdconfig',
     version = '1.0',
-    url='https://github.com/WarBean/dotconfig',
-    py_modules = ['dotconfig'],
+    url='https://github.com/WarBean/jdconfig',
+    py_modules = ['jdconfig'],
     author = 'Huabin Zheng',
     author_email = 'warbean@qq.com',
     description = 'Designed for highly convenient and flexible configuration in Deep Learning',

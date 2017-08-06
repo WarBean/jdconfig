@@ -4,9 +4,9 @@
 
 ```shell
 # Either
-pip install dotconfig
+pip install jdconfig
 # Or
-pip install --upgrade https://github.com/WarBean/dotconfig/tarball/master
+pip install --upgrade https://github.com/WarBean/jdconfig/tarball/master
 ```
 
 ## Usage
@@ -57,10 +57,10 @@ Suppose you have a json file `hyperparameter.json` containing your DL hyperparam
 
 ```
 
-Use `dotconfig.Config` to load the configuration:
+Use `jdconfig.Config` to load the configuration:
 
 ```python
-from dotconfig import Config
+from jdconfig import Config
 config = Config('hyperparameter.json')
 print(config.train_iter_count)
 print(config.model.dropout)
@@ -80,7 +80,7 @@ After that you can pass around the `config` object to wherever it is needed. For
 
 ```python
 import torch
-from dotconfig import Config
+from jdconfig import Config
 
 class MyCNN(torch.nn.Sequential):
     def __init__(self, config):
@@ -129,7 +129,7 @@ MyCNN (
 
 ### 3.Modification on the fly
 
-`dotconfig.Config` object is not just a static configuration. It can also be modified on the fly, which is highly flexible for passing arguments. For example
+`jdconfig.Config` object is not just a static configuration. It can also be modified on the fly, which is highly flexible for passing arguments. For example
 
 ```python
 def get_loader(config):
@@ -140,7 +140,7 @@ train_data_loader = get_loader(config(path = '../data/train_data/'))
 valid_data_loader = get_loader(config(path = '../data/valid_data/'))
 ```
 
-`dotconfig.Config` provides 4 more methods for specific control when modifying key-value pair on the fly:
+`jdconfig.Config` provides 4 more methods for specific control when modifying key-value pair on the fly:
 
 - `Config.copy_overwrite`
 - `Config.copy_fillup`
@@ -204,7 +204,7 @@ Finally, you can comment out some lines in json file just like you comment out c
 
 ```
 
-It's not a standard json format, but it can still be loaded by `dotconfig`:
+It's not a standard json format, but it can still be loaded by `jdconfig`:
 
 ```python
 config = Config('hyperparameter.json')
