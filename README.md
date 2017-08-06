@@ -11,7 +11,7 @@ pip install --upgrade https://github.com/WarBean/dotconfig/tarball/master
 
 ## Usage
 
-#### Basic Loading
+### 1.Basic Loading
 
 Suppose you have a json file `hyperparameter.json` containing your DL hyperparameters:
 
@@ -74,7 +74,7 @@ Output:
 [128, 128, 256, 256, 256]
 ```
 
-#### Passing Around
+### 2.Passing Around
 
 After that you can pass around the `config` object to wherever it is needed. For example, when I'm using PyTorch to create a network module:
 
@@ -127,7 +127,7 @@ MyCNN (
 )
 ```
 
-#### Modification on the fly
+### 3.Modification on the fly
 
 `dotconfig.Config` object is not just a static configuration. It can also be modified on the fly, which is highly flexible for passing arguments. For example
 
@@ -153,7 +153,7 @@ The methods with `overwrite` will forcibly overwrite whatever key-value pair in 
 
 Calling `config(path = '../data/train_data/')` is equivalent to calling `config.copy_overwrite(path = '../data/train_data')`.
 
-#### Python-style Comment
+### 4.Python-style Comment
 
 Finally, you can comment out some lines in json file just like you comment out code lines in Python. For example, try to modify the json file above:
 
