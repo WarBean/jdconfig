@@ -1,0 +1,4 @@
+__pycache__
+dotconfig.egg-info
+build/
+dist/
