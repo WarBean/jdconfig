@@ -1,4 +1,4 @@
-# Designed for highly convenient and flexibly configuring hyperparameters in Deep Learning
+# Extended Python dict for flexible hyperparameter configuration in Deep Learning
 
 ## Installation
 

@@ -8,10 +8,10 @@ setup(
     py_modules = ['jdconfig'],
     author = 'Huabin Zheng',
     author_email = 'warbean@qq.com',
-    description = 'Designed for highly convenient and flexible configuration in Deep Learning',
+    description = 'Extended Python dict for flexible hyperparameter configuration in Deep Learning',
     long_description = open(path.join(path.abspath(path.dirname(__file__)), 'README.rst')).read(),
     license = 'MIT',
-    keywords = 'dict dictionary configuration dot deep learning DL',
+    keywords = 'json dict configuration deep-learning python',
     zip_safe = False,
     install_requires = [],
 )
