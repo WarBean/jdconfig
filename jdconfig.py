@@ -1,49 +1,80 @@
-import re
-import json
+import json5
 
+def traverse_convert(cfg):
+    if isinstance(cfg, dict):
+        return Config(cfg)
+    if isinstance(cfg, list) or isinstance(cfg, tuple):
+        return type(cfg)([traverse_convert(value) for value in cfg])
+    return cfg
+
+def consume_dots(config, key, create_default):
+    holden_keys = key.split('.', 1)
+    holden_key = holden_keys[0]
+
+    if not dict.__contains__(config, holden_key):
+        if create_default:
+            dict.__setitem__(config, holden_key, Config())
+        else:
+            raise KeyError('%s not exists' % str(key))
+
+    if len(holden_keys) == 1:
+        return config, holden_key
+    else:
+        sub_config = dict.__getitem__(config, holden_key)
+        return consume_dots(sub_config, holden_keys[1], create_default)
 class Config(dict):
-    def __init__(self, stuff = None, **kwargs):
+
+    def __init__(self, *args, **kwargs):
         super(Config, self).__init__()
-        if type(stuff) is str:
-            content = ''
-            for line in open(stuff):
-                content += re.sub('#.*', '', line.strip()) + '\n'
-            for key, value in json.loads(content).items():
-                if type(value) == dict:
-                    value = Config(value)
-                self[key] = value
-        elif type(stuff) in [Config, dict]:
-            for key, value in stuff.items():
-                if type(value) in [Config, dict]:
-                    value = Config(value)
-                self[key] = value
-        elif stuff is not None:
-            raise TypeError('stuff should be a <str>, <dict>, <Config> or None')
+        self.__assign__(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        return Config(self, *args, **kwargs)
+
+    def __assign__(self, *args, **kwargs):
+        for arg in args:
+            if isinstance(arg, str):
+                jd = json5.load(open(arg))
+                self.__assign_from_dict__(jd, traverse = True)
+            elif isinstance(arg, dict):
+                self.__assign_from_dict__(arg, traverse = True)
+            else:
+                raise TypeError('arg should be an instance of <str> or <dict>')
         if kwargs:
-            for key, value in kwargs.items():
-                if type(value) in [Config, dict]:
-                    value = Config(value)
-                self[key] = value
+            self.__assign_from_dict__(kwargs, traverse = False)
+        return self
 
-    def __setitem__(self, key, value):
-        if not key.startswith('!') and self.__contains__('!' + key):
-            key = '!' + key
-        super(Config, self).__setitem__(key, value)
-        self.__dict__.update({key: value})
+    def __assign_from_dict__(self, d, traverse):
+        for key, value in d.items():
+            assert key != '', 'empty key is not allowed'
+            holder_cfg, holden_key = consume_dots(self, key, create_default = True)
+            if traverse: value = traverse_convert(value)
+            holder_cfg[holden_key] = value
 
-    def __getitem__(self, key):
-        if self.__contains__('!' + key):
-            return super(Config, self).__getitem__('!' + key)
-        else:
-            return super(Config, self).__getitem__(key)
+    def parse_args(self, args = None):
+        if args is None:
+            import sys
+            args = sys.argv[1:]
+        index = 0
+        while index < len(args):
+            arg = args[index]
+            assert arg.startswith('--'), 'arg should starts with "--"'
+            assert len(arg) > 2, 'requires len(arg) > 2'
+            assert arg[2] != '-', 'requires arg[2] != "-"'
+            arg = arg[2:]
+            if '=' in arg:
+                key, value = arg.split('=')
+                index += 1
+            else:
+                assert len(args) > index + 1, 'incomplete command line arguments'
+                key = arg
+                value = args[index + 1]
+                index += 2
+            assert key in self, '%s not exists in config' % key
+            value_type = type(self[key])
+            self[key] = value_type(value)
 
-    def __delitem__(self, key):
-        if self.__contains__('!' + key):
-            super(Config, self).__delitem__('!' + key)
-            del self.__dict__['!' + key]
-        else:
-            super(Config, self).__delitem__(key)
-            del self.__dict__[key]
+    # access by '.' -> access by '[]'
 
     def __getattr__(self, key):
         return self[key]
@@ -54,58 +85,48 @@ class Config(dict):
     def __delattr__(self, key):
         del self[key]
 
-    def items(self):
-        for key, value in super(Config, self).items():
-            if key.startswith('!'):
-                key = key[1:]
+    # access by '[]'
+
+    def __getitem__(self, key):
+        holder_cfg, holden_key = consume_dots(self, key, create_default = False)
+        return dict.__getitem__(holder_cfg, holden_key)
+
+    def __setitem__(self, key, value):
+        holder_cfg, holden_key = consume_dots(self, key, create_default = True)
+        dict.__setitem__(holder_cfg, holden_key, value)
+
+    def __delitem__(self, key):
+        holder_cfg, holden_key = consume_dots(self, key, create_default = False)
+        dict.__delitem__(holder_cfg, holden_key)
+        #del self.__dict__[key]
+
+    # access by 'in'
+
+    def __contains__(self, key):
+        try:
+            holder_cfg, holden_key = consume_dots(self, key, create_default = False)
+        except KeyError:
+            return False
+        return True
+
+    # traverse
+
+    def traverse(self, mode, prefix = []):
+        for key, value in self.items():
+            full_key = '.'.join(prefix + [key])
+            yield { 'key': full_key, 'value': value, 'item': (full_key, value) }[mode]
+            if type(value) == Config:
+                for kv in value.traverse(mode, prefix + [key]):
+                    yield kv
+
+    def traverse_keys(self):
+        for key in self.traverse('key'):
+            yield key
+
+    def traverse_values(self):
+        for value in self.traverse('value'):
+            yield value
+
+    def traverse_items(self):
+        for key, value in self.traverse('item'):
             yield key, value
-
-    def __call__(self, __copy__or__inplace__ = True, __overwrite__or__fillup__ = True, **kwargs):
-        if __copy__or__inplace__: new_config = Config(self)
-        else: new_config = self
-        for k, v in kwargs.items():
-            if __overwrite__or__fillup__ or k not in new_config:
-                new_config[k] = v
-            else:
-                raise Exception('In fillup mode, key <%s> already exists in config.')
-        return new_config
-
-    def copy_overwrite(self, **kwargs):
-        return self.__call__(True, True, **kwargs)
-
-    def copy_fillup(self, **kwargs):
-        return self.__call__(True, False, **kwargs)
-
-    def inplace_overwrite(self, **kwargs):
-        return self.__call__(False, True, **kwargs)
-
-    def inplace_fillup(self, **kwargs):
-        return self.__call__(False, False, **kwargs)
-
-    def maybe_get_kwargs(self, *keys):
-        kwargs = dict()
-        for key in keys:
-            if key in self:
-                kwargs[key] = self[key]
-        return kwargs
-
-    def collect_marked_config(self):
-        d = dict()
-        for path, value in traverse([], self):
-            d[path] = value
-        return d
-
-def traverse(prefix, node):
-    if type(node) not in [dict, Config]:
-        return
-    else:
-        for key in node.keys():
-            if key.startswith('!'):
-                path = '.'.join(prefix + [key[1:]])
-                value = node[key]
-                if type(value) not in [str, int, float, bool]:
-                    value = json.dumps(value)
-                yield path, value
-            else:
-                for path, value in traverse(prefix + [key], node[key]):
-                    yield path, value

@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name = 'jdconfig',
-    version = '1.0',
+    version = '2.0',
     url='https://github.com/WarBean/jdconfig',
     py_modules = ['jdconfig'],
     author = 'Huabin Zheng',
@@ -13,5 +13,5 @@ setup(
     license = 'MIT',
     keywords = 'json dict configuration deep-learning python',
     zip_safe = False,
-    install_requires = [],
+    install_requires = ['json5'],
 )
