@@ -107,7 +107,7 @@ class Config(dict):
             sub_cfg, sub_key = consume_dots(self, key, create_default = False)
         except KeyError:
             return False
-        return True
+        return dict.__contains__(sub_cfg, sub_key)
 
     ###########################################################
     # traverse keys / values/ items
