@@ -9,7 +9,7 @@ def consume_dots(config, key, create_default):
     sub_keys = key.split('.', 1)
     sub_key = sub_keys[0]
 
-    if not dict.__contains__(config, sub_key):
+    if not dict.__contains__(config, sub_key) and len(sub_keys) == 2:
         if create_default:
             dict.__setitem__(config, sub_key, Config())
         else:
