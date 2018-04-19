@@ -21,30 +21,30 @@ def consume_dots(config, key, create_default):
         sub_config = dict.__getitem__(config, sub_key)
         return consume_dots(sub_config, sub_keys[1], create_default)
 
-def init_assign(config, d, traverse):
-    for key, value in d.items():
-        sub_cfg, sub_key = consume_dots(config, key, create_default = True)
-        if traverse and type(value) is dict:
-            value = Config(value)
-        sub_cfg[sub_key] = value
-
-def traverse_dfs(config, mode, key_prefix = ''):
-    for key, value in config.items():
+def traverse_dfs(root, mode, continue_type, key_prefix = ''):
+    for key, value in root.items():
         full_key = '.'.join([key_prefix, key]).strip('.')
         yield { 'key': full_key, 'value': value, 'item': (full_key, value) }[mode]
-        if type(value) == Config:
-            for kv in traverse_dfs(value, mode, full_key):
+        if type(value) == continue_type:
+            for kv in traverse_dfs(value, mode, continue_type, full_key):
                 yield kv
 
-def traverse_bfs(config, mode):
-    q = [(config, '')]
+def traverse_bfs(root, mode):
+    q = [(root, '')]
     while len(q) > 0:
-        cfg, key_prefix = q.pop(0)
-        for key, value in cfg.items():
+        child, key_prefix = q.pop(0)
+        for key, value in child.items():
             full_key = '.'.join([key_prefix, key]).strip('.')
             yield { 'key': full_key, 'value': value, 'item': (full_key, value) }[mode]
-            if type(value) == Config:
+            if type(value) == continue_type:
                 q.append((value, full_key))
+
+def init_assign(config, d, traverse):
+    for full_key, value in traverse_dfs(d, 'item', continue_type = dict):
+        # skip non-empty dict
+        if type(value) == dict and len(value) > 0: continue
+        sub_cfg, sub_key = consume_dots(config, full_key, create_default = True)
+        sub_cfg[sub_key] = value
 
 ###############################################################
 # main class
@@ -115,17 +115,17 @@ class Config(dict):
 
     def all_keys(self, order = 'dfs'):
         traverse = { 'dfs': traverse_dfs, 'bfs': traverse_bfs }[order]
-        for key in traverse(self, 'key'):
+        for key in traverse(self, 'key', continue_type = Config):
             yield key
 
     def all_values(self, order = 'dfs'):
         traverse = { 'dfs': traverse_dfs, 'bfs': traverse_bfs }[order]
-        for value in traverse(self, 'value'):
+        for value in traverse(self, 'value', continue_type = Config):
             yield value
 
     def all_items(self, order = 'dfs'):
         traverse = { 'dfs': traverse_dfs, 'bfs': traverse_bfs }[order]
-        for key, value in traverse(self, 'item'):
+        for key, value in traverse(self, 'item', continue_type = Config):
             yield key, value
 
     ###########################################################
