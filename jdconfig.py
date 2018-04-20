@@ -163,4 +163,15 @@ class Config(dict):
             assert key in self, '%s not exists in config' % key
             if value_type is None:
                 value_type = type(self[key])
-            self[key] = value_type(value)
+
+            if value_type is bool:
+                self[key] = {
+                    'true' : True,
+                    'True' : True,
+                    '1'    : True,
+                    'false': False,
+                    'False': False,
+                    '0'    : False,
+                }[value]
+            else:
+                self[key] = value_type(value)
