@@ -69,6 +69,21 @@ class Config(dict):
         return Config(self, *args, **kwargs)
 
     ###########################################################
+    # support for pickle
+    ###########################################################
+
+    def __setstate__(self, state):
+        init_assign(self, state, traverse = True)
+
+    def __getstate__(self):
+        d = dict()
+        for key, value in self.items():
+            if type(value) is Config:
+                value = value.__getstate__()
+            d[key] = value
+        return d
+
+    ###########################################################
     # access by '.' -> access by '[]'
     ###########################################################
 
