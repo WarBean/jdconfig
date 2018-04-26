@@ -1,5 +1,7 @@
 # Extended Python dict for flexible hyperparameter configuration in Deep Learning
 
+## **Code has been updated to v2.0. Documentation is comming soon. **
+
 ## Installation
 
 ```shell
