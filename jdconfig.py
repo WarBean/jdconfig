@@ -190,3 +190,17 @@ class Config(dict):
                 }[value]
             else:
                 self[key] = value_type(value)
+
+    ###########################################################
+    # for key reference
+    ###########################################################
+
+    def parse_refs(self):
+        assign_list = []
+        for key, value in self.all_items():
+            if type(value) is str and value.startswith('${') and value.endswith('}'):
+                ref_key = value[2:-1]
+                ref_value = self[ref_key]
+                assign_list.append((key, ref_value))
+        for key, ref_value in assign_list:
+            self[key] = ref_value
