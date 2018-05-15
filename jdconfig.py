@@ -1,5 +1,6 @@
 import re
 import json5
+import warnings
 
 ###############################################################
 # utility functions
@@ -195,12 +196,26 @@ class Config(dict):
     # for key reference
     ###########################################################
 
-    def parse_refs(self):
-        assign_list = []
-        for key, value in self.all_items():
+    def parse_refs(self, subconf = None, stack_depth = 1, max_stack_depth = 10):
+        if stack_depth > max_stack_depth:
+            raise Exception((
+                'Recursively calling `parse_refs` too many times with stack depth > %d. A circular reference may exists in your config.\n'
+                'If deeper calling stack is really needed, please call `parse_refs` with extra argument like: `parse_refs(max_stack_depth = 9999)`'
+                ) % max_stack_depth
+            )
+        if subconf is None:
+            subconf = self
+        for key in subconf.keys():
+            value = subconf[key]
             if type(value) is str and value.startswith('${') and value.endswith('}'):
                 ref_key = value[2:-1]
                 ref_value = self[ref_key]
-                assign_list.append((key, ref_value))
-        for key, ref_value in assign_list:
-            self[key] = ref_value
+                if type(ref_value) is str and ref_value.startswith('${') and value.endswith('}'):
+                    raise Exception('Refering key %s to %s, but the value of %s is another reference value %s' % (
+                        repr(key), repr(value), repr(ref_key), repr(ref_value),
+                    ))
+                subconf[key] = ref_value
+        for key in subconf.keys():
+            value = subconf[key]
+            if type(value) is Config:
+                self.parse_refs(value, stack_depth + 1)
