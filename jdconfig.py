@@ -20,6 +20,12 @@ def consume_dots(config, key, create_default):
         return config, sub_key
     else:
         sub_config = dict.__getitem__(config, sub_key)
+        if type(sub_config) != Config:
+            if create_default:
+                sub_config = Config()
+                dict.__setitem__(config, sub_key, sub_config)
+            else:
+                raise KeyError('%s not exists' % str(key))
         return consume_dots(sub_config, sub_keys[1], create_default)
 
 def traverse_dfs(root, mode, continue_type, key_prefix = ''):
@@ -148,7 +154,8 @@ class Config(dict):
     # for command line arguments
     ###########################################################
 
-    def parse_args(self, cmd_args = None):
+    def parse_args(self, cmd_args = None, strict = True):
+        unknown_args = []
         if cmd_args is None:
             import sys
             cmd_args = sys.argv[1:]
@@ -162,21 +169,28 @@ class Config(dict):
 
             arg = arg[2:]
             if '=' in arg:
-                key, value = arg.split('=')
+                key, full_value_str = arg.split('=')
                 index += 1
             else:
                 assert len(cmd_args) > index + 1, \
                         'incomplete command line arguments'
                 key = arg
-                value = cmd_args[index + 1]
+                full_value_str = cmd_args[index + 1]
                 index += 2
-            if ':' in value:
-                value, value_type_str = value.split(':')
+            if ':' in full_value_str:
+                value_str, value_type_str = full_value_str.split(':')
                 value_type = eval(value_type_str)
             else:
+                value_str = full_value_str
                 value_type = None
 
-            assert key in self, '%s not exists in config' % key
+            if key not in self:
+                if strict:
+                    raise KeyError('%s not exists in config' % key)
+                else:
+                    unknown_args.extend(['--' + key, full_value_str])
+                    continue
+
             if value_type is None:
                 value_type = type(self[key])
 
@@ -188,9 +202,11 @@ class Config(dict):
                     'false': False,
                     'False': False,
                     '0'    : False,
-                }[value]
+                }[value_str]
             else:
-                self[key] = value_type(value)
+                self[key] = value_type(value_str)
+
+        return unknown_args
 
     ###########################################################
     # for key reference
@@ -207,10 +223,10 @@ class Config(dict):
             subconf = self
         for key in subconf.keys():
             value = subconf[key]
-            if type(value) is str and value.startswith('${') and value.endswith('}'):
+            if type(value) is str and value.startswith('@{') and value.endswith('}'):
                 ref_key = value[2:-1]
                 ref_value = self[ref_key]
-                if type(ref_value) is str and ref_value.startswith('${') and value.endswith('}'):
+                if type(ref_value) is str and ref_value.startswith('@{') and value.endswith('}'):
                     raise Exception('Refering key %s to %s, but the value of %s is another reference value %s' % (
                         repr(key), repr(value), repr(ref_key), repr(ref_value),
                     ))
